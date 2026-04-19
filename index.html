@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#000000">
+  <title>Caption</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      background: #000000;
+      color: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* Caption display */
+    .caption-display {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 24px 32px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .caption-display::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40%;
+      background: linear-gradient(to bottom, #000000 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .caption-text {
+      font-size: 5vw;
+      font-weight: 700;
+      line-height: 1.5;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      white-space: pre-wrap;
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: #111111;
+      border-top: 1px solid #333333;
+      border-bottom: 1px solid #333333;
+    }
+
+    .toolbar-spacer {
+      flex: 1;
+    }
+
+    .toolbar button {
+      background: #333333;
+      color: #FFFFFF;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .toolbar button:hover {
+      background: #444444;
+    }
+
+    .toolbar .btn-fullscreen {
+      background: #2563eb;
+    }
+
+    .toolbar .btn-fullscreen:hover {
+      background: #1d4ed8;
+    }
+
+    /* Text input area */
+    .input-area {
+      padding: 12px 16px;
+      background: #111111;
+    }
+
+    .input-area textarea {
+      width: 100%;
+      min-height: 80px;
+      background: #1a1a1a;
+      color: #FFFFFF;
+      border: 1px solid #333333;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 16px;
+      font-family: inherit;
+      resize: vertical;
+      outline: none;
+    }
+
+    .input-area textarea:focus {
+      border-color: #2563eb;
+    }
+
+    /* Fullscreen mode */
+    .app.fullscreen .toolbar,
+    .app.fullscreen .input-area {
+      display: none;
+    }
+
+    .app.fullscreen .caption-display {
+      padding: 32px 48px;
+    }
+
+    .app.fullscreen .caption-text {
+      font-size: 6vw;
+    }
+
+    /* Fullscreen hint */
+    .fullscreen-hint {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #333333;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity 0.5s;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .fullscreen-hint.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="caption-display" id="captionDisplay">
+      <div class="caption-text" id="captionText"></div>
+    </div>
+
+    <div class="toolbar" id="toolbar">
+      <button class="btn-clear" id="btnClear">Clear</button>
+      <button class="btn-export" id="btnExport">Export</button>
+      <div class="toolbar-spacer"></div>
+      <button class="btn-fullscreen" id="btnFullscreen">Fullscreen</button>
+    </div>
+
+    <div class="input-area" id="inputArea">
+      <textarea
+        id="captionInput"
+        placeholder="Start typing or dictating..."
+        autofocus
+      ></textarea>
+    </div>
+  </div>
+
+  <div class="fullscreen-hint" id="fullscreenHint">ESC to exit fullscreen</div>
+
+  <script>
+    (function () {
+      const BUFFER_LIMIT = 5000;
+      const STORAGE_KEY = 'caption-transcript';
+
+      const captionInput = document.getElementById('captionInput');
+      const captionText = document.getElementById('captionText');
+      const captionDisplay = document.getElementById('captionDisplay');
+      const app = document.getElementById('app');
+      const btnClear = document.getElementById('btnClear');
+      const btnExport = document.getElementById('btnExport');
+      const btnFullscreen = document.getElementById('btnFullscreen');
+      const fullscreenHint = document.getElementById('fullscreenHint');
+
+      let previousLength = 0;
+
+      // --- Caption rendering & buffer management ---
+
+      function updateCaption() {
+        const currentValue = captionInput.value;
+
+        // Append only the new text to localStorage
+        if (currentValue.length > previousLength) {
+          const newText = currentValue.slice(previousLength);
+          const existing = localStorage.getItem(STORAGE_KEY) || '';
+          localStorage.setItem(STORAGE_KEY, existing + newText);
+        }
+
+        // Trim textarea if it exceeds the buffer limit
+        if (currentValue.length > BUFFER_LIMIT) {
+          const trimmed = currentValue.slice(currentValue.length - BUFFER_LIMIT);
+          // Find the first space to trim at a word boundary
+          const firstSpace = trimmed.indexOf(' ');
+          const cleanTrimmed = firstSpace > -1 ? trimmed.slice(firstSpace + 1) : trimmed;
+          captionInput.value = cleanTrimmed;
+        }
+
+        previousLength = captionInput.value.length;
+
+        // Update caption display
+        captionText.textContent = captionInput.value;
+        captionDisplay.scrollTop = captionDisplay.scrollHeight;
+      }
+
+      captionInput.addEventListener('input', updateCaption);
+
+      // Restore from localStorage on load (use the tail of the transcript)
+      function restoreFromStorage() {
+        const transcript = localStorage.getItem(STORAGE_KEY);
+        if (transcript) {
+          const tail = transcript.length > BUFFER_LIMIT
+            ? transcript.slice(transcript.length - BUFFER_LIMIT)
+            : transcript;
+          captionInput.value = tail;
+          previousLength = tail.length;
+          captionText.textContent = tail;
+          captionDisplay.scrollTop = captionDisplay.scrollHeight;
+        }
+      }
+
+      restoreFromStorage();
+
+      // --- Focus management ---
+
+      document.addEventListener('click', () => {
+        captionInput.focus();
+      });
+
+      document.addEventListener('keydown', () => {
+        if (document.activeElement !== captionInput) {
+          captionInput.focus();
+        }
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          captionInput.focus();
+        }
+      });
+
+      captionInput.focus();
+
+      // --- Clear ---
+
+      btnClear.addEventListener('click', (e) => {
+        e.stopPropagation();
+        captionInput.value = '';
+        captionText.textContent = '';
+        localStorage.removeItem(STORAGE_KEY);
+        previousLength = 0;
+        captionInput.focus();
+      });
+
+      // --- Export ---
+
+      btnExport.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const transcript = localStorage.getItem(STORAGE_KEY) || '';
+        if (!transcript) return;
+
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const timestamp = [
+          now.getFullYear(),
+          pad(now.getMonth() + 1),
+          pad(now.getDate()),
+          '-',
+          pad(now.getHours()),
+          pad(now.getMinutes()),
+          pad(now.getSeconds())
+        ].join('');
+        const filename = 'caption-transcript-' + timestamp + '.txt';
+
+        const blob = new Blob([transcript], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        captionInput.focus();
+      });
+
+      // --- Fullscreen ---
+
+      btnFullscreen.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.documentElement.requestFullscreen();
+      });
+
+      document.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement) {
+          app.classList.add('fullscreen');
+          fullscreenHint.classList.add('visible');
+          setTimeout(() => {
+            fullscreenHint.classList.remove('visible');
+          }, 3000);
+        } else {
+          app.classList.remove('fullscreen');
+          fullscreenHint.classList.remove('visible');
+        }
+        captionInput.focus();
+      });
+    })();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</body>
+</html>
