@@ -124,9 +124,17 @@
     }
 
     /* Fullscreen mode */
-    .app.fullscreen .toolbar,
-    .app.fullscreen .input-area {
+    .app.fullscreen .toolbar {
       display: none;
+    }
+
+    .app.fullscreen .input-area {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 0;
+      height: 0;
+      overflow: hidden;
     }
 
     .app.fullscreen .caption-display {
