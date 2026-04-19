@@ -53,7 +53,7 @@
     }
 
     .caption-text {
-      font-size: 5vw;
+      font-size: var(--caption-size, 5vw);
       font-weight: 700;
       line-height: 1.5;
       word-wrap: break-word;
@@ -157,6 +157,8 @@
       <button class="btn-clear" id="btnClear">Clear</button>
       <button class="btn-export" id="btnExport">Export</button>
       <div class="toolbar-spacer"></div>
+      <button id="btnSizeDown">A-</button>
+      <button id="btnSizeUp">A+</button>
       <button class="btn-fullscreen" id="btnFullscreen">Fullscreen</button>
     </div>
 
@@ -183,7 +185,17 @@
       const btnClear = document.getElementById('btnClear');
       const btnExport = document.getElementById('btnExport');
       const btnFullscreen = document.getElementById('btnFullscreen');
+      const btnSizeDown = document.getElementById('btnSizeDown');
+      const btnSizeUp = document.getElementById('btnSizeUp');
       const fullscreenHint = document.getElementById('fullscreenHint');
+
+      // --- Font size control ---
+      const SIZES = [3, 4, 5, 6, 7, 8, 10];
+      let sizeIndex = 2; // default 5vw
+
+      function applySize() {
+        document.documentElement.style.setProperty('--caption-size', SIZES[sizeIndex] + 'vw');
+      }
 
       let previousLength = 0;
 
@@ -316,6 +328,26 @@
         setTimeout(() => {
           captionInput.focus();
         }, 100);
+      });
+
+      // --- Font size buttons ---
+
+      btnSizeDown.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (sizeIndex > 0) {
+          sizeIndex--;
+          applySize();
+        }
+        captionInput.focus();
+      });
+
+      btnSizeUp.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (sizeIndex < SIZES.length - 1) {
+          sizeIndex++;
+          applySize();
+        }
+        captionInput.focus();
       });
     })();
 
