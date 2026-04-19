@@ -123,11 +123,6 @@
       border-color: #2563eb;
     }
 
-    /* Fullscreen mode */
-    .app.fullscreen .toolbar {
-      display: none;
-    }
-
     /* Fullscreen hint */
     .fullscreen-hint {
       position: fixed;
@@ -310,19 +305,20 @@
 
       btnFullscreen.addEventListener('click', (e) => {
         e.stopPropagation();
-        document.documentElement.requestFullscreen();
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          document.documentElement.requestFullscreen();
+        }
       });
 
       document.addEventListener('fullscreenchange', () => {
         if (document.fullscreenElement) {
           app.classList.add('fullscreen');
-          fullscreenHint.classList.add('visible');
-          setTimeout(() => {
-            fullscreenHint.classList.remove('visible');
-          }, 3000);
+          btnFullscreen.textContent = 'Exit Fullscreen';
         } else {
           app.classList.remove('fullscreen');
-          fullscreenHint.classList.remove('visible');
+          btnFullscreen.textContent = 'Fullscreen';
         }
         // Delay focus to let the fullscreen transition complete
         setTimeout(() => {
