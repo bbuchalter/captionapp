@@ -192,11 +192,18 @@
         document.documentElement.style.setProperty('--caption-size', SIZES[sizeIndex] + 'vw');
       }
 
+      const RENDER_DELAY = 500;
       let previousLength = 0;
+      let renderTimer = null;
 
       // --- Caption rendering & buffer management ---
 
-      function updateCaption() {
+      function renderDisplay() {
+        captionText.textContent = captionInput.value;
+        captionDisplay.scrollTop = captionDisplay.scrollHeight;
+      }
+
+      function handleInput() {
         const currentValue = captionInput.value;
 
         // Append only the new text to localStorage
@@ -217,12 +224,12 @@
 
         previousLength = captionInput.value.length;
 
-        // Update caption display
-        captionText.textContent = captionInput.value;
-        captionDisplay.scrollTop = captionDisplay.scrollHeight;
+        // Debounce display render
+        clearTimeout(renderTimer);
+        renderTimer = setTimeout(renderDisplay, RENDER_DELAY);
       }
 
-      captionInput.addEventListener('input', updateCaption);
+      captionInput.addEventListener('input', handleInput);
 
       // Restore from localStorage on load (use the tail of the transcript)
       function restoreFromStorage() {
@@ -264,6 +271,7 @@
 
       btnClear.addEventListener('click', (e) => {
         e.stopPropagation();
+        clearTimeout(renderTimer);
         captionInput.value = '';
         captionText.textContent = '';
         localStorage.removeItem(STORAGE_KEY);
