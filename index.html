@@ -329,7 +329,10 @@
           app.classList.remove('fullscreen');
           fullscreenHint.classList.remove('visible');
         }
-        captionInput.focus();
+        // Delay focus to let the fullscreen transition complete
+        setTimeout(() => {
+          captionInput.focus();
+        }, 100);
       });
     })();
 
